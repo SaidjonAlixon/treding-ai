@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "SmartGold & Bitcoin AI Trader"
+description = "A paper-trading control platform for XAU/USD and BTC/USD with multi-timeframe strategies, data-quality guards, risk approval, backtesting, position monitoring, and an auditable decision log. Live broker execution is disabled by default."
+version = "1.0.0"
+id = "artifacts/smartgold-bitcoin-trader"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24704
+
+[services.development]
+run = "pnpm --filter @workspace/smartgold-bitcoin-trader run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/smartgold-bitcoin-trader", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/smartgold-bitcoin-trader/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24704"
+BASE_PATH = "/"
