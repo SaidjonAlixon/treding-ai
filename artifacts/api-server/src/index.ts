@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { runPaperEngineCycle } from "./lib/trading-engine";
 
 const rawPort = process.env["PORT"];
 
@@ -23,3 +24,10 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
 });
+
+const paperCycleTimer = setInterval(() => {
+  void runPaperEngineCycle().catch((error: unknown) => {
+    logger.error({ err: error }, "Paper trading cycle failed");
+  });
+}, 30_000);
+paperCycleTimer.unref();

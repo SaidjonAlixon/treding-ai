@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: trading
+    description: Paper trading control and monitoring
 paths:
   /healthz:
     get:
@@ -24,7 +26,233 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /trading/dashboard:
+    get:
+      operationId: getTradingDashboard
+      tags: [trading]
+      summary: Get the paper trading dashboard
+      responses:
+        "200":
+          description: Current engine and market status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradingDashboard"
+  /trading/settings:
+    get:
+      operationId: getTradingSettings
+      tags: [trading]
+      summary: Get paper trading risk settings
+      responses:
+        "200":
+          description: Current settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradingSettings"
+    patch:
+      operationId: updateTradingSettings
+      tags: [trading]
+      summary: Update validated paper trading settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TradingSettingsUpdate"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradingSettings"
+        "400":
+          description: Invalid or unsafe setting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /trading/engine:
+    post:
+      operationId: controlTradingEngine
+      tags: [trading]
+      summary: Start, pause, stop, or emergency-stop the paper engine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EngineActionInput"
+      responses:
+        "200":
+          description: Updated engine state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EngineStatus"
+  /trading/signals:
+    get:
+      operationId: getTradingSignals
+      tags: [trading]
+      summary: List recent strategy decisions
+      responses:
+        "200":
+          description: Recent signal decisions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SignalDecision"
+  /trading/signals/evaluate:
+    post:
+      operationId: evaluateTradingSignal
+      tags: [trading]
+      summary: Evaluate one symbol with deterministic strategies and risk guards
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvaluateSignalInput"
+      responses:
+        "200":
+          description: Strategy and risk-engine decision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignalDecision"
+  /trading/positions:
+    get:
+      operationId: getTradingPositions
+      tags: [trading]
+      summary: List paper positions
+      responses:
+        "200":
+          description: Current and recent paper positions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TradingPosition"
+  /trading/positions/{positionId}/close:
+    post:
+      operationId: closeTradingPosition
+      tags: [trading]
+      summary: Close a paper position
+      parameters:
+        - name: positionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Closed paper position
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradingPosition"
+        "404":
+          description: Position not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /trading/audit:
+    get:
+      operationId: getTradingAudit
+      tags: [trading]
+      summary: List recent audit events
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 30
+      responses:
+        "200":
+          description: Audit events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditEvent"
+  /trading/backtests:
+    get:
+      operationId: getTradingBacktests
+      tags: [trading]
+      summary: List paper backtest runs
+      responses:
+        "200":
+          description: Backtest history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BacktestRun"
+    post:
+      operationId: runTradingBacktest
+      tags: [trading]
+      summary: Run a strategy against a clearly labeled synthetic dataset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BacktestInput"
+      responses:
+        "200":
+          description: Backtest results and metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BacktestRun"
+  /trading/bridge/market-data:
+    post:
+      operationId: submitMt5MarketData
+      tags: [trading]
+      summary: Receive read-only market quotes and OHLCV from an MT5 bridge
+      security:
+        - mt5BridgeToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Mt5MarketDataInput"
+      responses:
+        "202":
+          description: Market data accepted for paper monitoring
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Mt5MarketDataReceipt"
+        "401":
+          description: Bridge token is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Market data is stale or inconsistent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
+  securitySchemes:
+    mt5BridgeToken:
+      type: apiKey
+      in: header
+      name: X-Bridge-Token
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +261,665 @@ components:
           type: string
       required:
         - status
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    EngineState:
+      type: string
+      enum: [stopped, running, paused, emergency_stop]
+    TradingMode:
+      type: string
+      enum: [paper]
+    TradingDashboard:
+      type: object
+      properties:
+        mode:
+          $ref: "#/components/schemas/TradingMode"
+        engineState:
+          $ref: "#/components/schemas/EngineState"
+        liveExecutionEnabled:
+          type: boolean
+        lastUpdatedAt:
+          type: string
+          format: date-time
+        account:
+          $ref: "#/components/schemas/AccountSnapshot"
+        risk:
+          $ref: "#/components/schemas/RiskSnapshot"
+        dataQuality:
+          $ref: "#/components/schemas/DataQualitySnapshot"
+        connections:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConnectionStatus"
+        assets:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssetSnapshot"
+        signals:
+          type: array
+          items:
+            $ref: "#/components/schemas/SignalDecision"
+        positions:
+          type: array
+          items:
+            $ref: "#/components/schemas/TradingPosition"
+        calendarEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarEvent"
+        recentAudit:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditEvent"
+      required:
+        - mode
+        - engineState
+        - liveExecutionEnabled
+        - lastUpdatedAt
+        - account
+        - risk
+        - dataQuality
+        - connections
+        - assets
+        - signals
+        - positions
+        - calendarEvents
+        - recentAudit
+    AccountSnapshot:
+      type: object
+      properties:
+        currency:
+          type: string
+        balance:
+          type: number
+        equity:
+          type: number
+        availableBalance:
+          type: number
+        dayPnl:
+          type: number
+        weekPnl:
+          type: number
+        monthPnl:
+          type: number
+        currentDrawdownPct:
+          type: number
+      required:
+        - currency
+        - balance
+        - equity
+        - availableBalance
+        - dayPnl
+        - weekPnl
+        - monthPnl
+        - currentDrawdownPct
+    RiskSnapshot:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [clear, blocked]
+        dailyLossUsedPct:
+          type: number
+        dailyLossLimitPct:
+          type: number
+        weeklyLossUsedPct:
+          type: number
+        weeklyLossLimitPct:
+          type: number
+        maxDrawdownPct:
+          type: number
+        openRiskPct:
+          type: number
+        reasons:
+          type: array
+          items:
+            type: string
+      required:
+        - status
+        - dailyLossUsedPct
+        - dailyLossLimitPct
+        - weeklyLossUsedPct
+        - weeklyLossLimitPct
+        - maxDrawdownPct
+        - openRiskPct
+        - reasons
+    DataQualitySnapshot:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [live, simulated, degraded, blocked]
+        provider:
+          type: string
+        quoteAgeSeconds:
+          type: number
+        stale:
+          type: boolean
+        spreadHealthy:
+          type: boolean
+        timestampHealthy:
+          type: boolean
+        detail:
+          type: string
+      required:
+        - status
+        - provider
+        - quoteAgeSeconds
+        - stale
+        - spreadHealthy
+        - timestampHealthy
+        - detail
+    ConnectionStatus:
+      type: object
+      properties:
+        id:
+          type: string
+          enum: [mt5, crypto, calendar, ai]
+        label:
+          type: string
+        status:
+          type: string
+          enum: [connected, disconnected, degraded, unavailable]
+        detail:
+          type: string
+        lastCheckedAt:
+          type: string
+          format: date-time
+      required: [id, label, status, detail, lastCheckedAt]
+    AssetSnapshot:
+      type: object
+      properties:
+        symbol:
+          type: string
+          enum: [XAUUSD, BTCUSDT]
+        label:
+          type: string
+        price:
+          type: number
+        bid:
+          type: number
+        ask:
+          type: number
+        change24hPct:
+          type: number
+        volume24h:
+          type: number
+        timeframe:
+          type: string
+        trend:
+          type: string
+          enum: [uptrend, downtrend, range, unknown]
+        source:
+          type: string
+        isSynthetic:
+          type: boolean
+      required:
+        - symbol
+        - label
+        - price
+        - bid
+        - ask
+        - change24hPct
+        - volume24h
+        - timeframe
+        - trend
+        - source
+        - isSynthetic
+    SignalDecision:
+      type: object
+      properties:
+        id:
+          type: integer
+        symbol:
+          type: string
+          enum: [XAUUSD, BTCUSDT]
+        strategy:
+          type: string
+        action:
+          type: string
+          enum: [LONG, SHORT, NO_TRADE]
+        score:
+          type: integer
+        marketRegime:
+          type: string
+          enum: [trend, range, high_volatility, unknown]
+        entryPrice:
+          type: ["number", "null"]
+        stopLoss:
+          type: ["number", "null"]
+        takeProfit:
+          type: ["number", "null"]
+        riskReward:
+          type: ["number", "null"]
+        allowed:
+          type: boolean
+        reasons:
+          type: array
+          items:
+            type: string
+        counterEvidence:
+          type: array
+          items:
+            type: string
+        dataSource:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - symbol
+        - strategy
+        - action
+        - score
+        - marketRegime
+        - entryPrice
+        - stopLoss
+        - takeProfit
+        - riskReward
+        - allowed
+        - reasons
+        - counterEvidence
+        - dataSource
+        - createdAt
+    TradingPosition:
+      type: object
+      properties:
+        id:
+          type: integer
+        symbol:
+          type: string
+          enum: [XAUUSD, BTCUSDT]
+        side:
+          type: string
+          enum: [LONG, SHORT]
+        quantity:
+          type: number
+        entryPrice:
+          type: number
+        currentPrice:
+          type: number
+        stopLoss:
+          type: number
+        takeProfit:
+          type: number
+        riskAmount:
+          type: number
+        unrealizedPnl:
+          type: number
+        status:
+          type: string
+          enum: [open, closed]
+        openedAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - id
+        - symbol
+        - side
+        - quantity
+        - entryPrice
+        - currentPrice
+        - stopLoss
+        - takeProfit
+        - riskAmount
+        - unrealizedPnl
+        - status
+        - openedAt
+        - closedAt
+    CalendarEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        currency:
+          type: string
+        impact:
+          type: string
+          enum: [high, medium, low]
+        scheduledAt:
+          type: string
+          format: date-time
+        source:
+          type: string
+        verified:
+          type: boolean
+      required: [id, title, currency, impact, scheduledAt, source, verified]
+    AuditEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        eventType:
+          type: string
+        severity:
+          type: string
+          enum: [info, warning, critical]
+        symbol:
+          type: ["string", "null"]
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, eventType, severity, symbol, message, details, createdAt]
+    TradingSettings:
+      type: object
+      properties:
+        mode:
+          $ref: "#/components/schemas/TradingMode"
+        engineState:
+          $ref: "#/components/schemas/EngineState"
+        liveExecutionEnabled:
+          type: boolean
+        initialBalance:
+          type: number
+        riskPerTradePct:
+          type: number
+        maxDailyLossPct:
+          type: number
+        maxWeeklyLossPct:
+          type: number
+        maxDrawdownPct:
+          type: number
+        minRiskReward:
+          type: number
+        minimumSignalScore:
+          type: integer
+        newsBufferBeforeMinutes:
+          type: integer
+        newsBufferAfterMinutes:
+          type: integer
+        enabledSymbols:
+          type: array
+          items:
+            type: string
+            enum: [XAUUSD, BTCUSDT]
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - mode
+        - engineState
+        - liveExecutionEnabled
+        - initialBalance
+        - riskPerTradePct
+        - maxDailyLossPct
+        - maxWeeklyLossPct
+        - maxDrawdownPct
+        - minRiskReward
+        - minimumSignalScore
+        - newsBufferBeforeMinutes
+        - newsBufferAfterMinutes
+        - enabledSymbols
+        - updatedAt
+    TradingSettingsUpdate:
+      type: object
+      properties:
+        initialBalance:
+          type: number
+          minimum: 100
+          maximum: 10000000
+        riskPerTradePct:
+          type: number
+          minimum: 0.05
+          maximum: 0.5
+        maxDailyLossPct:
+          type: number
+          minimum: 0.1
+          maximum: 1
+        maxWeeklyLossPct:
+          type: number
+          minimum: 0.5
+          maximum: 3
+        maxDrawdownPct:
+          type: number
+          minimum: 1
+          maximum: 5
+        minRiskReward:
+          type: number
+          minimum: 1
+          maximum: 5
+        minimumSignalScore:
+          type: integer
+          minimum: 50
+          maximum: 100
+        newsBufferBeforeMinutes:
+          type: integer
+          minimum: 0
+          maximum: 240
+        newsBufferAfterMinutes:
+          type: integer
+          minimum: 0
+          maximum: 240
+        enabledSymbols:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            enum: [XAUUSD, BTCUSDT]
+      additionalProperties: false
+    EngineActionInput:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [start, pause, stop, kill-switch]
+      required: [action]
+    EngineStatus:
+      type: object
+      properties:
+        mode:
+          $ref: "#/components/schemas/TradingMode"
+        engineState:
+          $ref: "#/components/schemas/EngineState"
+        liveExecutionEnabled:
+          type: boolean
+        message:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+      required: [mode, engineState, liveExecutionEnabled, message, updatedAt]
+    EvaluateSignalInput:
+      type: object
+      properties:
+        symbol:
+          type: string
+          enum: [XAUUSD, BTCUSDT]
+      required: [symbol]
+    BacktestInput:
+      type: object
+      properties:
+        symbol:
+          type: string
+          enum: [XAUUSD, BTCUSDT]
+        strategy:
+          type: string
+          enum: [gold-breakout-retest, btc-trend-momentum]
+        initialBalance:
+          type: number
+          minimum: 100
+          maximum: 10000000
+        riskPerTradePct:
+          type: number
+          minimum: 0.05
+          maximum: 0.5
+        feeBps:
+          type: number
+          minimum: 0
+          maximum: 100
+        slippageBps:
+          type: number
+          minimum: 0
+          maximum: 200
+      required: [symbol, strategy, initialBalance, riskPerTradePct, feeBps, slippageBps]
+      additionalProperties: false
+    EquityPoint:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        equity:
+          type: number
+      required: [timestamp, equity]
+    BacktestRun:
+      type: object
+      properties:
+        id:
+          type: integer
+        symbol:
+          type: string
+          enum: [XAUUSD, BTCUSDT]
+        strategy:
+          type: string
+        datasetLabel:
+          type: string
+        initialBalance:
+          type: number
+        netProfit:
+          type: number
+        netProfitPct:
+          type: number
+        profitFactor:
+          type: number
+        maxDrawdownPct:
+          type: number
+        winRatePct:
+          type: number
+        tradeCount:
+          type: integer
+        expectancy:
+          type: number
+        fees:
+          type: number
+        slippage:
+          type: number
+        equityCurve:
+          type: array
+          items:
+            $ref: "#/components/schemas/EquityPoint"
+        disclaimer:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - symbol
+        - strategy
+        - datasetLabel
+        - initialBalance
+        - netProfit
+        - netProfitPct
+        - profitFactor
+        - maxDrawdownPct
+        - winRatePct
+        - tradeCount
+        - expectancy
+        - fees
+        - slippage
+        - equityCurve
+        - disclaimer
+        - createdAt
+    MarketCandle:
+      type: object
+      properties:
+        timestamp:
+          type: integer
+          description: Unix timestamp in seconds
+        open:
+          type: number
+        high:
+          type: number
+        low:
+          type: number
+        close:
+          type: number
+        volume:
+          type: number
+      required: [timestamp, open, high, low, close, volume]
+    Mt5MarketDataInput:
+      type: object
+      properties:
+        symbol:
+          type: string
+          enum: [XAUUSD, BTCUSDT]
+        brokerSymbol:
+          type: string
+          minLength: 1
+          maxLength: 32
+        timeframe:
+          type: string
+          enum: [M1, M5, M15, H1, H4, D1]
+        bid:
+          type: number
+          exclusiveMinimum: 0
+        ask:
+          type: number
+          exclusiveMinimum: 0
+        lastPrice:
+          type: number
+          exclusiveMinimum: 0
+        volume:
+          type: number
+          minimum: 0
+        marketTimestamp:
+          type: integer
+          description: Unix timestamp in seconds
+        candles:
+          type: array
+          minItems: 60
+          maxItems: 300
+          items:
+            $ref: "#/components/schemas/MarketCandle"
+      required:
+        - symbol
+        - brokerSymbol
+        - timeframe
+        - bid
+        - ask
+        - lastPrice
+        - volume
+        - marketTimestamp
+        - candles
+      additionalProperties: false
+    Mt5MarketDataReceipt:
+      type: object
+      properties:
+        accepted:
+          type: boolean
+        symbol:
+          type: string
+          enum: [XAUUSD, BTCUSDT]
+        provider:
+          type: string
+        receivedAt:
+          type: string
+          format: date-time
+        dataAgeSeconds:
+          type: number
+        liveExecutionEnabled:
+          type: boolean
+      required:
+        - accepted
+        - symbol
+        - provider
+        - receivedAt
+        - dataAgeSeconds
+        - liveExecutionEnabled
 
