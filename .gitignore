@@ -53,3 +53,18 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Haqiqiy secretlar lokalda (GitHub Push Protection OpenAI keyni bloklaydi)
+.env
+.env.local
+**/.env.local
+# Namuna fayllar repoda:
+# .env.example
+
+# Python / build junk (kutubxonalar emas)
+__pycache__/
+*.pyc
+.venv/
+venv/
+artifacts/**/dist/
+artifacts/**/node_modules/

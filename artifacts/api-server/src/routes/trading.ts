@@ -5,6 +5,8 @@ import {
   CloseTradingPositionResponse,
   ControlTradingEngineBody,
   ControlTradingEngineResponse,
+  EnterTradingSignalParams,
+  EnterTradingSignalResponse,
   EvaluateTradingSignalBody,
   EvaluateTradingSignalResponse,
   GetTradingAuditQueryParams,
@@ -23,6 +25,7 @@ import {
   closeTradingPosition,
   controlEngine,
   createTradingBacktest,
+  enterTradingSignal,
   evaluateTradingSignal,
   getDashboard,
   getTradingAudit,
@@ -34,8 +37,14 @@ import {
 } from "../lib/trading-engine";
 
 const router: IRouter = Router();
+const localDevAuth = process.env.LOCAL_DEV_AUTH === "1";
 
 router.use(async (req, res, next): Promise<void> => {
+  if (localDevAuth) {
+    next();
+    return;
+  }
+
   const { userId } = getAuth(req);
   if (!userId) {
     res.status(401).json({ error: "Kirish talab qilinadi." });
@@ -69,7 +78,9 @@ router.use(async (req, res, next): Promise<void> => {
 });
 
 router.get("/trading/dashboard", async (_req, res): Promise<void> => {
-  const response = GetTradingDashboardResponse.parse(await getDashboard());
+  const response = GetTradingDashboardResponse.passthrough().parse(
+    await getDashboard(),
+  );
   res.json(response);
 });
 
@@ -131,6 +142,28 @@ router.post("/trading/signals/evaluate", async (req, res): Promise<void> => {
     await evaluateTradingSignal(parsed.data.symbol),
   );
   res.json(response);
+});
+
+router.post("/trading/signals/:signalId/enter", async (req, res): Promise<void> => {
+  const parsed = EnterTradingSignalParams.safeParse(req.params);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  try {
+    const position = await enterTradingSignal(parsed.data.signalId);
+    if (!position) {
+      res.status(404).json({ error: "Signal topilmadi." });
+      return;
+    }
+    const response = EnterTradingSignalResponse.parse(position);
+    res.json(response);
+  } catch (error) {
+    res.status(400).json({
+      error:
+        error instanceof Error ? error.message : "Kirishni bajarib bo‘lmadi.",
+    });
+  }
 });
 
 router.get("/trading/positions", async (_req, res): Promise<void> => {

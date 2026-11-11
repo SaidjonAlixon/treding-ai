@@ -28,7 +28,8 @@ export const tradingSettingsTable = pgTable("trading_settings", {
   maxWeeklyLossPct: doublePrecision("max_weekly_loss_pct").notNull().default(3),
   maxDrawdownPct: doublePrecision("max_drawdown_pct").notNull().default(5),
   minRiskReward: doublePrecision("min_risk_reward").notNull().default(2),
-  minimumSignalScore: integer("minimum_signal_score").notNull().default(80),
+  minimumSignalScore: integer("minimum_signal_score").notNull().default(85),
+  autoEnterMinScore: integer("auto_enter_min_score").notNull().default(92),
   newsBufferBeforeMinutes: integer("news_buffer_before_minutes")
     .notNull()
     .default(30),
@@ -61,6 +62,11 @@ export const tradingSignalsTable = pgTable("trading_signals", {
     .$type<string[]>()
     .notNull()
     .default([]),
+  forecast: text("forecast").notNull().default(""),
+  analysis: text("analysis").notNull().default(""),
+  recommendation: text("recommendation").notNull().default(""),
+  agentVerdict: text("agent_verdict").notNull().default("no_trade"),
+  entered: boolean("entered").notNull().default(false),
   dataSource: text("data_source").notNull().default("synthetic"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

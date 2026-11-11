@@ -32,16 +32,22 @@ app.use(
     },
   }),
 );
-app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
+const localDevAuth = process.env.LOCAL_DEV_AUTH === "1";
+
+if (!localDevAuth) {
+  app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
+}
 app.use(cors({ credentials: true, origin: true }));
-app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env.CLERK_PUBLISHABLE_KEY,
-    ),
-  })),
-);
+if (!localDevAuth) {
+  app.use(
+    clerkMiddleware((req) => ({
+      publishableKey: publishableKeyFromHost(
+        getClerkProxyHost(req) ?? "",
+        process.env.CLERK_PUBLISHABLE_KEY,
+      ),
+    })),
+  );
+}
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -88,6 +88,11 @@ export const GetTradingDashboardResponse = zod.object({
   "allowed": zod.boolean(),
   "reasons": zod.array(zod.string()),
   "counterEvidence": zod.array(zod.string()),
+  "forecast": zod.string(),
+  "analysis": zod.string(),
+  "recommendation": zod.string(),
+  "agentVerdict": zod.enum(['auto_enter', 'manual_confirm', 'no_trade']),
+  "entered": zod.boolean(),
   "dataSource": zod.string(),
   "createdAt": zod.coerce.date()
 })),
@@ -141,6 +146,7 @@ export const GetTradingSettingsResponse = zod.object({
   "maxDrawdownPct": zod.number(),
   "minRiskReward": zod.number(),
   "minimumSignalScore": zod.number().int(),
+  "autoEnterMinScore": zod.number().int(),
   "newsBufferBeforeMinutes": zod.number().int(),
   "newsBufferAfterMinutes": zod.number().int(),
   "enabledSymbols": zod.array(zod.enum(['XAUUSD', 'BTCUSDT'])),
@@ -186,6 +192,7 @@ export const UpdateTradingSettingsBody = zod.object({
   "maxDrawdownPct": zod.number().min(1).max(updateTradingSettingsBodyMaxDrawdownPctMax).optional(),
   "minRiskReward": zod.number().min(1).max(updateTradingSettingsBodyMinRiskRewardMax).optional(),
   "minimumSignalScore": zod.number().int().min(updateTradingSettingsBodyMinimumSignalScoreMin).max(updateTradingSettingsBodyMinimumSignalScoreMax).optional(),
+  "autoEnterMinScore": zod.number().int().min(80).max(100).optional(),
   "newsBufferBeforeMinutes": zod.number().int().min(updateTradingSettingsBodyNewsBufferBeforeMinutesMin).max(updateTradingSettingsBodyNewsBufferBeforeMinutesMax).optional(),
   "newsBufferAfterMinutes": zod.number().int().min(updateTradingSettingsBodyNewsBufferAfterMinutesMin).max(updateTradingSettingsBodyNewsBufferAfterMinutesMax).optional(),
   "enabledSymbols": zod.array(zod.enum(['XAUUSD', 'BTCUSDT'])).optional()
@@ -202,6 +209,7 @@ export const UpdateTradingSettingsResponse = zod.object({
   "maxDrawdownPct": zod.number(),
   "minRiskReward": zod.number(),
   "minimumSignalScore": zod.number().int(),
+  "autoEnterMinScore": zod.number().int(),
   "newsBufferBeforeMinutes": zod.number().int(),
   "newsBufferAfterMinutes": zod.number().int(),
   "enabledSymbols": zod.array(zod.enum(['XAUUSD', 'BTCUSDT'])),
@@ -242,6 +250,11 @@ export const GetTradingSignalsResponseItem = zod.object({
   "allowed": zod.boolean(),
   "reasons": zod.array(zod.string()),
   "counterEvidence": zod.array(zod.string()),
+  "forecast": zod.string(),
+  "analysis": zod.string(),
+  "recommendation": zod.string(),
+  "agentVerdict": zod.enum(['auto_enter', 'manual_confirm', 'no_trade']),
+  "entered": zod.boolean(),
   "dataSource": zod.string(),
   "createdAt": zod.coerce.date()
 })
@@ -269,8 +282,33 @@ export const EvaluateTradingSignalResponse = zod.object({
   "allowed": zod.boolean(),
   "reasons": zod.array(zod.string()),
   "counterEvidence": zod.array(zod.string()),
+  "forecast": zod.string(),
+  "analysis": zod.string(),
+  "recommendation": zod.string(),
+  "agentVerdict": zod.enum(['auto_enter', 'manual_confirm', 'no_trade']),
+  "entered": zod.boolean(),
   "dataSource": zod.string(),
   "createdAt": zod.coerce.date()
+})
+
+export const EnterTradingSignalParams = zod.object({
+  "signalId": zod.coerce.number().int()
+})
+
+export const EnterTradingSignalResponse = zod.object({
+  "id": zod.number().int(),
+  "symbol": zod.enum(['XAUUSD', 'BTCUSDT']),
+  "side": zod.enum(['LONG', 'SHORT']),
+  "quantity": zod.number(),
+  "entryPrice": zod.number(),
+  "currentPrice": zod.number(),
+  "stopLoss": zod.number(),
+  "takeProfit": zod.number(),
+  "riskAmount": zod.number(),
+  "unrealizedPnl": zod.number(),
+  "status": zod.enum(['open', 'closed']),
+  "openedAt": zod.coerce.date(),
+  "closedAt": zod.coerce.date().nullable()
 })
 
 

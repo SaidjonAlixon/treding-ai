@@ -636,6 +636,48 @@ export const useEvaluateTradingSignal = <TError = ErrorType<unknown>,
       return useMutation(getEvaluateTradingSignalMutationOptions(options));
     }
 
+export const getEnterTradingSignalUrl = (signalId: number) => {
+  return `/api/trading/signals/${signalId}/enter`
+}
+
+export const enterTradingSignal = async (signalId: number, options?: Parameters<typeof customFetch>[1]): Promise<TradingPosition> => {
+  return customFetch<TradingPosition>(getEnterTradingSignalUrl(signalId), {
+    ...options,
+    method: 'POST',
+  });
+}
+
+export const getEnterTradingSignalMutationKey = () => ['enterTradingSignal'] as const;
+
+export type EnterTradingSignalMutationVariables = { signalId: number };
+
+export const getEnterTradingSignalMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enterTradingSignal>>, TError,EnterTradingSignalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof enterTradingSignal>>, TError,EnterTradingSignalMutationVariables, TContext> => {
+  const mutationKey = getEnterTradingSignalMutationKey();
+  const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof enterTradingSignal>>, EnterTradingSignalMutationVariables> = (props) => {
+    const {signalId} = props ?? {};
+    return enterTradingSignal(signalId, requestOptions)
+  }
+  return { mutationFn, ...mutationOptions }
+}
+
+export const useEnterTradingSignal = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enterTradingSignal>>, TError,EnterTradingSignalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof enterTradingSignal>>,
+        TError,
+        EnterTradingSignalMutationVariables,
+        TContext
+      > => {
+      return useMutation(getEnterTradingSignalMutationOptions(options));
+    }
+
 export const getGetTradingPositionsUrl = () => {
 
 

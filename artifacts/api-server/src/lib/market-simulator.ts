@@ -105,14 +105,14 @@ export function calculateAtr(candles: Candle[], period = 14): number {
   return trueRanges.reduce((sum, value) => sum + value, 0) / trueRanges.length;
 }
 
-export function getMarketSnapshot(symbol: SymbolCode) {
+export function getSyntheticSnapshot(symbol: SymbolCode) {
   const candles = generateCandles(symbol, 180);
   const market = MARKETS[symbol];
   const latest = candles.at(-1)!;
   const previousDay = candles.at(-25)!;
-  const spreadPct = symbol === "BTCUSDT" ? 0.00035 : 0.0002;
-  const bid = latest.close * (1 - spreadPct / 2);
-  const ask = latest.close * (1 + spreadPct / 2);
+  const spread = symbol === "BTCUSDT" ? 0.00035 : 0.0002;
+  const bid = latest.close * (1 - spread / 2);
+  const ask = latest.close * (1 + spread / 2);
   const closes = candles.map((candle) => candle.close);
   const ema20 = calculateEma(closes.slice(-40), 20);
   const ema50 = calculateEma(closes.slice(-90), 50);
@@ -140,5 +140,11 @@ export function getMarketSnapshot(symbol: SymbolCode) {
     isSynthetic: true,
     candles,
     spreadHealthy: ask - bid < latest.close * 0.002,
+    quoteAgeSeconds: 0,
   };
+}
+
+/** @deprecated Prefer live-market.getLiveOrSyntheticSnapshot in engine paths */
+export function getMarketSnapshot(symbol: SymbolCode) {
+  return getSyntheticSnapshot(symbol);
 }

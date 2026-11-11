@@ -166,6 +166,15 @@ export const SignalDecisionMarketRegime = {
   unknown: 'unknown',
 } as const;
 
+export type SignalDecisionAgentVerdict = typeof SignalDecisionAgentVerdict[keyof typeof SignalDecisionAgentVerdict];
+
+
+export const SignalDecisionAgentVerdict = {
+  auto_enter: 'auto_enter',
+  manual_confirm: 'manual_confirm',
+  no_trade: 'no_trade',
+} as const;
+
 export interface SignalDecision {
   id: number;
   symbol: SignalDecisionSymbol;
@@ -184,6 +193,11 @@ export interface SignalDecision {
   allowed: boolean;
   reasons: string[];
   counterEvidence: string[];
+  forecast: string;
+  analysis: string;
+  recommendation: string;
+  agentVerdict: SignalDecisionAgentVerdict;
+  entered: boolean;
   dataSource: string;
   createdAt: string;
 }
@@ -270,6 +284,27 @@ export interface AuditEvent {
   createdAt: string;
 }
 
+export interface LiveFeedEvent {
+  id: number;
+  at: string;
+  kind: string;
+  message: string;
+  tone: 'good' | 'bad' | 'neutral';
+}
+
+export interface LiveFeed {
+  profitMode: string;
+  baseRiskUsd: number;
+  agentStatus: string;
+  currentAction: string;
+  watching: string[];
+  openCount: number;
+  lastSymbol: string | null;
+  lastVerdict: string | null;
+  lastScore: number | null;
+  events: LiveFeedEvent[];
+}
+
 export interface TradingDashboard {
   mode: TradingMode;
   engineState: EngineState;
@@ -284,6 +319,7 @@ export interface TradingDashboard {
   positions: TradingPosition[];
   calendarEvents: CalendarEvent[];
   recentAudit: AuditEvent[];
+  liveFeed?: LiveFeed;
 }
 
 export type TradingSettingsEnabledSymbolsItem = typeof TradingSettingsEnabledSymbolsItem[keyof typeof TradingSettingsEnabledSymbolsItem];
@@ -305,6 +341,7 @@ export interface TradingSettings {
   maxDrawdownPct: number;
   minRiskReward: number;
   minimumSignalScore: number;
+  autoEnterMinScore: number;
   newsBufferBeforeMinutes: number;
   newsBufferAfterMinutes: number;
   enabledSymbols: TradingSettingsEnabledSymbolsItem[];
@@ -355,6 +392,11 @@ export interface TradingSettingsUpdate {
      * @maximum 100
      */
   minimumSignalScore?: number;
+  /**
+     * @minimum 80
+     * @maximum 100
+     */
+  autoEnterMinScore?: number;
   /**
      * @minimum 0
      * @maximum 240

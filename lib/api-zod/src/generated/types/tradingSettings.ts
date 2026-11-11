@@ -20,6 +20,7 @@ export interface TradingSettings {
   maxDrawdownPct: number;
   minRiskReward: number;
   minimumSignalScore: number;
+  autoEnterMinScore: number;
   newsBufferBeforeMinutes: number;
   newsBufferAfterMinutes: number;
   enabledSymbols: TradingSettingsEnabledSymbolsItem[];

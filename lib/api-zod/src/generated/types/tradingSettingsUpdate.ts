@@ -44,6 +44,11 @@ export interface TradingSettingsUpdate {
      */
   minimumSignalScore?: number;
   /**
+     * @minimum 80
+     * @maximum 100
+     */
+  autoEnterMinScore?: number;
+  /**
      * @minimum 0
      * @maximum 240
      */

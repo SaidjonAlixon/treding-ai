@@ -123,6 +123,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SignalDecision"
+  /trading/signals/{signalId}/enter:
+    post:
+      operationId: enterTradingSignal
+      tags: [trading]
+      summary: Manually enter a paper position from an approved signal
+      parameters:
+        - name: signalId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Opened paper position
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradingPosition"
+        "400":
+          description: Signal is not eligible for entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Signal not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /trading/positions:
     get:
       operationId: getTradingPositions
@@ -506,6 +536,17 @@ components:
           type: array
           items:
             type: string
+        forecast:
+          type: string
+        analysis:
+          type: string
+        recommendation:
+          type: string
+        agentVerdict:
+          type: string
+          enum: [auto_enter, manual_confirm, no_trade]
+        entered:
+          type: boolean
         dataSource:
           type: string
         createdAt:
@@ -525,6 +566,11 @@ components:
         - allowed
         - reasons
         - counterEvidence
+        - forecast
+        - analysis
+        - recommendation
+        - agentVerdict
+        - entered
         - dataSource
         - createdAt
     TradingPosition:
@@ -639,6 +685,8 @@ components:
           type: number
         minimumSignalScore:
           type: integer
+        autoEnterMinScore:
+          type: integer
         newsBufferBeforeMinutes:
           type: integer
         newsBufferAfterMinutes:
@@ -662,6 +710,7 @@ components:
         - maxDrawdownPct
         - minRiskReward
         - minimumSignalScore
+        - autoEnterMinScore
         - newsBufferBeforeMinutes
         - newsBufferAfterMinutes
         - enabledSymbols
@@ -696,6 +745,10 @@ components:
         minimumSignalScore:
           type: integer
           minimum: 50
+          maximum: 100
+        autoEnterMinScore:
+          type: integer
+          minimum: 80
           maximum: 100
         newsBufferBeforeMinutes:
           type: integer

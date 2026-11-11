@@ -9,6 +9,8 @@ import type { SignalDecisionAction } from './signalDecisionAction';
 import type { SignalDecisionMarketRegime } from './signalDecisionMarketRegime';
 import type { SignalDecisionSymbol } from './signalDecisionSymbol';
 
+export type SignalDecisionAgentVerdict = 'auto_enter' | 'manual_confirm' | 'no_trade';
+
 export interface SignalDecision {
   id: number;
   symbol: SignalDecisionSymbol;
@@ -27,6 +29,11 @@ export interface SignalDecision {
   allowed: boolean;
   reasons: string[];
   counterEvidence: string[];
+  forecast: string;
+  analysis: string;
+  recommendation: string;
+  agentVerdict: SignalDecisionAgentVerdict;
+  entered: boolean;
   dataSource: string;
   createdAt: Date;
 }
